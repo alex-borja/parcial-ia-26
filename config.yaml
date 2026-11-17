@@ -1,0 +1,422 @@
+# =============================================================================
+# Configuración única del sistema «Frutos secos».
+#
+# Regla: todo umbral numérico vive aquí, con un comentario que diga de dónde
+# sale. Los valores marcados «TODO: medir» son provisionales (dimensiones
+# típicas de bibliografía) y deben sustituirse por lo que proponga
+# scripts/medir_umbrales.py sobre data/desarrollo/ (NUNCA sobre data/test/).
+#
+# Todas las magnitudes de tamaño están en mm / mm² (no en píxeles): así el
+# árbol no depende de la distancia cámara-tapete ni de la resolución.
+# =============================================================================
+
+preprocesado:
+  # Lado mayor (px) al que se reescala la foto antes de procesar. Fija la
+  # resolución de trabajo para que los kernels (en px) sean comparables entre
+  # fotos. Con el tapete de 400×300 mm y algo de margen (campo ~480×360 mm)
+  # salen ~0,3 mm/px: una avellana (~16 mm, el objeto más pequeño) ocupa
+  # ~50 px de diámetro.
+  # TODO: medir — scripts/calibrar.py imprime el tamaño en px del objeto más
+  # pequeño; debe ser >= ~25 px para que forma y color sean fiables.
+  lado_max_px: 1600
+  # Desenfoque gaussiano suave antes de pasar a HSV (impar). Pequeño: el
+  # reescalado con INTER_AREA ya promedia ruido, y un desenfoque grande crea
+  # un borde mezclado (fruto+sombra) que ensancha los contactos entre frutos.
+  blur_kernel: 3
+
+calibracion:
+  # Fracción (por lado) de la imagen usada como ROI central para medir el
+  # verde en la foto del tapete vacío.
+  roi_central: 0.6
+  # Rango = media ± k·desv por canal (H, S, V). V lleva k mayor porque los
+  # frutos secos son volumétricos y proyectan sombra: la sombra sigue siendo
+  # «verde oscuro» (mismo H) y no debe sumarse al objeto.
+  # TODO: medir — histogramas de H, S, V del tapete vacío vs. de los frutos.
+  k_desviaciones: [3.0, 3.0, 4.5]
+  # Anchura mínima del rango por canal (por si el tapete es muy uniforme).
+  ancho_minimo: [10, 40, 80]
+  # Límite inferior ABSOLUTO de V para el verde. La sombra de un fruto es
+  # verde (mismo H y S) pero más oscura; si quedase fuera del rango se
+  # sumaría al objeto (más área, y rellenaría la concavidad del anacardo).
+  # Los frutos se separan del tapete por H y S, así que V puede ser muy
+  # permisivo. Solo se exige V >= este valor para no aceptar negro puro.
+  # TODO: medir — V de las sombras junto a los frutos en data/desarrollo/.
+  v_min_sombra: 25
+  archivo_salida: salidas/calibracion.json
+
+escala:
+  # Cómo se obtiene la relación mm/px (necesaria para medir en mm):
+  #   "tapete": el tapete se ve ENTERO en la foto de calibración y se conocen
+  #             sus dimensiones reales -> mm/px = sqrt(área_real / área_px).
+  #   "fijo":   se mide a mano (regla sobre el tapete) y se escribe abajo,
+  #             en mm por px de la imagen ORIGINAL.
+  #   "tapete_por_foto": como "tapete", pero la escala se mide en CADA foto
+  #             con el tapete que se ve en ella (los frutos quedan dentro de
+  #             su envolvente). Tolera que el móvil se mueva o gire entre
+  #             fotos; exige que el tapete se vea entero en todas. Elegido
+  #             porque en las fotos reales de desarrollo la escala varió de
+  #             −3 % a +16 % respecto a la calibración (cámara no fija).
+  modo: tapete_por_foto
+  # Tapete real del montaje final: 40 × 30 cm (ancho × alto en la foto; el
+  # orden da igual, la escala sale del ÁREA y la proporción se compara sin
+  # orientación). Las sesiones sintéticas antiguas (500×500) llevan su propio
+  # tapete.json, que manda sobre este valor (scripts/_comun.py).
+  tapete_mm: [400, 300]
+  mm_por_px_original: null       # solo si modo == fijo
+
+segmentacion:
+  # "exg": exceso de verde sobre cromaticidad lineal, umbral adaptativo por
+  #        imagen (robusto a sombras, focos y cambios de color de la luz).
+  # "hsv": rango HSV fijo de la calibración (método original).
+  # Medido con scripts/evaluar_sesiones.py en 8 iluminaciones sintéticas:
+  # ver informe/robustez_iluminacion.md.
+  metodo: exg
+  # Umbral ExG = mediana del tapete − k·σ (σ robusta, MAD), acotado a
+  # [exg_min, mediana − margen_exg]: queda ~a medio camino entre el tapete
+  # (~0,75) y los frutos (<= ~0,15), así una sombra azulada (~0,6) sigue
+  # siendo tapete.
+  # TODO: medir — histograma de ExG de tapete, sombras y frutos en fotos reales.
+  k_exg: 6.0
+  exg_min: 0.25
+  margen_exg: 0.30
+  # Zonas muy oscuras (sombras duras, fotos con poca luz o solo con flash):
+  # ahí el color de cada píxel es ruido, así que se usa la MEDIANA local de
+  # ExG (ventana de este lado en mm; conserva los bordes). Solo actúa por
+  # debajo de `nivel_oscuro` (luminancia lineal 0-1: efecto total bajo el
+  # primero, nulo sobre el segundo; 0,03-0,08 ≈ niveles 48-79 de 255), de modo
+  # que una foto bien expuesta no cambia. Medido con scripts/evaluar_luz.py.
+  # null = desactivado.
+  mediana_oscuro_mm: 3.0
+  nivel_oscuro: [0.03, 0.08]
+  # Apertura (quita motas) y cierre (repara bordes mordidos). Se mantienen
+  # pequeños: un cierre grande «suelda» frutos que están casi tocándose.
+  # En mm (no en px) para que no dependan de la distancia de la cámara.
+  apertura_mm: 1.5
+  cierre_mm: 1.0
+  # Rellenar huecos internos (brillos, grietas de la cáscara de la nuez).
+  rellenar_huecos: true
+  # ...pero solo los huecos de hasta este área. Medido (sintético) con la
+  # verdad por píxel: los frutos sueltos de desarrollo no tienen NINGÚN hueco
+  # (brillos y grietas no son verdes), y los huecos de los racimos de
+  # validación son tapete encerrado entre frutos (0,8 a 72 mm²; el anillo de
+  # dos anacardos). Rellenar uno de 3 mm² cambia < 2 % el área del fruto
+  # más pequeño (136 mm²); uno mayor pegaría tapete a un fruto y le subiría
+  # la solidez (anacardo -> cacahuete). null = rellenar todos.
+  # TODO: medir — huecos internos de frutos sueltos en fotos reales.
+  hueco_max_mm2: 3.0
+
+roi_tapete:
+  # "auto" (mayor región verde -> envolvente convexa), "esquinas" o "ninguna".
+  modo: auto
+  esquinas: []          # [[x, y], ...] px de la imagen ORIGINAL si modo == esquinas
+  margen_interior_mm: 2.0
+  # Fracción mínima de la foto que debe ocupar el tapete detectado (si no, se
+  # sospecha de la calibración y se usa la foto entera). El tapete de 40×30 cm
+  # ocupa ~16 % con la cámara simulada más lejana (campo ~1000×750 mm) y
+  # ~70 % en el montaje previsto: 0,08 deja margen sin aceptar manchas verdes.
+  fraccion_minima: 0.08
+
+deteccion:
+  # Regiones más pequeñas que esto son ruido (migas, motas, cáscara suelta).
+  # TODO: medir — debe quedar por debajo del área mínima de la clase más
+  # pequeña medida en data/desarrollo/ (histograma de áreas).
+  area_min_mm2: 60     # sintético v2: fruto más pequeño 143 mm²
+  # Astillas de fondo en el borde: el borde de un tapete de tela ondula y su
+  # envolvente convexa (la ROI) deja dentro tiras finas de mesa. Una región
+  # que TOCA el borde del tapete y cuyo radio inscrito máximo es menor que
+  # esto no puede contener un fruto y se descarta. Medido: astillas en las
+  # fotos reales del tapete vacío (data/calibracion/vacio*.jpeg) 1,5-2,5 mm;
+  # frutos de desarrollo (data/desarrollo_estres/) >= 4,1 mm (anacardo; el
+  # resto >= 6,5 mm). 3,3 mm = mitad del hueco. null = no filtrar.
+  # TODO: medir — repetir con las fotos reales de desarrollo.
+  radio_min_borde_mm: 3.3
+  # ...o si es muy ALARGADA: alargamiento = área / (π·r²), r = radio inscrito.
+  # Una esquina del tapete en pico deja cuñas de mesa más gruesas (r 3,3-3,5
+  # mm) pero larguísimas. Medido en data/desarrollo/ (fotos reales): cuñas
+  # 20,6-27,3; frutos y parejas en contacto <= 5,9 (cacahuete). 12 deja sitio
+  # a varios frutos en fila tocando el borde.
+  alargamiento_max_borde: 12
+  # Separación de objetos en contacto (transformada de distancia + watershed).
+  separar_contactos: true
+  # Un máximo de la transformada de distancia (radio inscrito) menor que esto
+  # no se considera centro de objeto (evita semillas en salientes finos).
+  radio_min_mm: 3.0
+  # Criterio de cuello: dos máximos son objetos distintos si el «cuello» que
+  # los une es estrecho: radio_cuello < ratio_cuello · min(radio_a, radio_b).
+  # Un objeto único con cintura (cacahuete) tiene cuello alto (~0,8); dos
+  # frutos que se tocan, más bajo (~0,4-0,6: el borde difuminado de la foto
+  # ensancha el punto de contacto).
+  # TODO: medir — scripts/medir_umbrales.py compara `cuello_relativo` de
+  # objetos SUELTOS (data/desarrollo/<clase>/) con el de frutos EN CONTACTO
+  # (data/desarrollo/contacto/); el umbral va entre ambas distribuciones.
+  ratio_cuello: 0.75   # sintético v2: objetos sueltos >= 0,78
+  # Criterio de color: dos máximos vecinos con ΔE (CIELAB) >= este valor
+  # son frutos distintos aunque el contacto sea ancho. Debe quedar por
+  # encima de la variación de color DENTRO de un fruto suelto.
+  # TODO: medir — máximo de `contraste_interno` en objetos sueltos.
+  delta_e_max: 15        # sintético v2: ΔE interno de frutos sueltos <= 9,2
+  # Bucle de verificación con el árbol (src/pipeline.py, Verificador): si una
+  # región sale «desconocido», se prueban cortes por sus entrantes.
+  verificar_con_arbol: true
+  max_profundidad_cortes: 6     # racimos de hasta 6-7 frutos
+  # Máximo de piezas evaluadas con el árbol por región (acota el tiempo en
+  # racimos grandes: ~2 ms por evaluación).
+  presupuesto_evaluaciones: 300
+  # Tiempo máximo de búsqueda de particiones por imagen (s): salvaguarda ante
+  # un racimo enorme. La demo analiza al pulsar una tecla (no en continuo).
+  # Con 2 s el resultado dependía de la carga de la CPU (validación: 96,1 %
+  # con 2 s frente a 97,0 % sin límite); el peor caso medido en validación
+  # es ~3,5 s con la CPU ocupada, así que con 5 s casi nunca se corta.
+  tiempo_max_busqueda_s: 5.0
+  # Hipótesis extra por transformada de distancia con umbrales de cuello más
+  # permisivos (1.01 = cada máximo prominente es un fruto).
+  ratios_hipotesis: [0.85, 0.95, 1.01]
+  # Una pieza menor que esto es una astilla y se une a su vecina:
+  # ~0,7 × el área mínima medida del fruto más pequeño (anacardo, 136 mm²).
+  pieza_min_mm2: 95
+  # Al final, unir piezas vecinas si su unión es un fruto válido (deshace un
+  # fruto partido en dos mitades válidas; ver Verificador.fusionar).
+  fusionar_validas: true
+  # Refinado de fronteras (Verificador.refinar): watershed sobre el color
+  # desde el núcleo de cada pieza, erosionada esta banda. Validación
+  # (data/estres/): 1,0 mm 96,8 %, 1,5 mm 97,0 %, 2,0 mm 96,7 %,
+  # 3,0 mm 96,7 %, sin refinar 96,5 %: meseta amplia; 1,5 mm ≈ el error
+  # típico de una frontera geométrica (halo de borde de ~2 px + desvío del
+  # corte). 0 = desactivado.
+  banda_refinado_mm: 1.5
+  # Un entrante (defecto de convexidad) cuenta si se aleja al menos esto de
+  # la envolvente. Frutos que se tocan dejan entrantes de varios mm.
+  # TODO: medir — profundidad de entrantes en frutos sueltos vs. en contacto.
+  profundidad_entrante_mm: 1.5
+  max_entrantes: 6
+  max_cortes: 6
+
+caracteristicas:
+  # Erosión (px) de la máscara antes de medir el color, para no mezclar el
+  # borde del fruto con el verde del tapete.
+  erosion_color_mm: 1.2
+  # El color se mide en el NÚCLEO: píxeles a más de esta fracción del radio
+  # inscrito desde el borde. Con webcam lejana (0,8 mm/px) y JPEG el borde
+  # mezcla fruto y tapete y bajaba rojo_rel de la almendra hasta tocar al
+  # cacahuete (desarrollo multicámara).
+  nucleo_color: 0.35
+  # Nivel (0-255) desde el que un canal se da por QUEMADO; esos píxeles no
+  # entran en el color del fruto ni del tapete (exceso de luz, flash cerca).
+  # 225: en las capturas con flash (DroidCam) el máximo real de la cámara es
+  # ~222-233 (hombro de su curva), no 255.
+  saturacion: 225
+  # Anillo de tapete alrededor del fruto (mm) que sirve de referencia de color
+  # local (color relativo, von Kries).
+  anillo_mm: [1.6, 5.6]
+
+# -----------------------------------------------------------------------------
+# Clases. `tecla` se usa en scripts/etiquetar.py; `color_bgr` para dibujar;
+# `peso_medio_g` para la interpretación (TODO: pesar 10 unidades de cada uno).
+# -----------------------------------------------------------------------------
+clases:
+  nuez:      {tecla: n, color_bgr: [0, 165, 255],  peso_medio_g: 11.0}
+  avellana:  {tecla: v, color_bgr: [30, 60, 160],  peso_medio_g: 2.5}
+  almendra:  {tecla: a, color_bgr: [255, 120, 0],  peso_medio_g: 1.3}
+  anacardo:  {tecla: k, color_bgr: [230, 230, 60], peso_medio_g: 1.6}
+  cacahuete: {tecla: c, color_bgr: [200, 0, 200],  peso_medio_g: 1.5}
+
+# -----------------------------------------------------------------------------
+# Árbol de decisión EXPLÍCITO. Cada nodo:
+#   id, pregunta, caracteristica, operador (">" | "<"), umbral,
+#   justificacion, si: <subárbol>, sino: <subárbol>
+#   (no se usa la clave «no» porque YAML la lee como el booleano False)
+# Hoja: {clase: <nombre>, validar: {caracteristica: [min, max]}}
+#   `validar` (opcional) es el rango medido de esa clase (± margen, lo
+#   propone medir_umbrales.py); si el objeto cae fuera, es «desconocido»:
+#   un objeto extraño, o varios frutos pegados, que el bucle de verificación
+#   intenta separar (deteccion.verificar_con_arbol).
+# Elección de características y umbrales: scripts/medir_umbrales.py sobre
+# fotos de desarrollo de clase conocida (ranking de separabilidad
+# por nodo). Se prefieren características que NO dependen de la luz:
+# tamaño en mm, forma (momentos, envolvente convexa) y color RELATIVO al
+# tapete. Umbrales medidos con las FOTOS REALES de data/desarrollo/ (sesión
+# 2026-11-10: 16 fotos, 188 frutos, escala por foto; 8 objetos mal
+# segmentados excluidos en data/desarrollo/excluir.txt), informe en
+# salidas/umbrales_real_v3/resumen.md. Entre paréntesis, el valor sintético
+# anterior (salidas/umbrales_sint_v4). Los rangos `validar` del cacahuete se
+# amplían (mismos márgenes que medir_umbrales) con 4 cacahuetes difíciles
+# medidos ENTEROS: dos con mucha cintura que la medición partía en dos, uno
+# con cintura y uno en gancho (solidez 0,83-0,88, entrante1 hasta 4,23 mm,
+# entrante2 hasta 3,68 mm, área desde 245 mm²).
+# Anacardo: área hasta 360 mm² (fotos: máx. 271; demo DroidCam 2026-11-10,
+# 0,52 mm/px: hasta 319, el borde más difuso engorda el fruto) y N4c a 0,78
+# (en la demo el anacardo llega a entrante2 0,72).
+# Luz extrema (scripts/evaluar_luz.py, sesión 2026-11-16): el límite inferior
+# de rojo_rel de los frutos CLAROS (nuez, anacardo, cacahuete) baja a 0,42:
+# con exceso de luz o el flash cerca el beige se quema hacia el blanco, y el
+# blanco respecto a este tapete vale ~0,415 (anacardos quemados de la demo:
+# 0,43-0,47). El superior del beige sube a 0,79 (= N3; ya no deja hueco).
+# Nuez y avellana: excentricidad mínima a 0 (demo 2026-11-17: una avellana
+# casi perfectamente redonda, 0,06, salía «desconocido»; ser MÁS redonda de lo
+# medido no puede ser señal de otro objeto).
+# N4a: anacardo de canto (convexo y pequeño), visto en la demo con flash.
+# TODO: medir — una sola sesión de luz; repetir con otra luz (p. ej. la del
+# aula) antes del examen y comprobar que los rangos no se mueven.
+# -----------------------------------------------------------------------------
+arbol:
+  id: N1
+  pregunta: ¿Es mucho mayor que los demás?
+  caracteristica: area_mm2
+  operador: ">"
+  umbral: 772           # real: nuez [1000, 1399] vs. resto [121, 544] mm², punto medio (sintético 540)
+  justificacion: >-
+    El área en mm² (escala calibrada) separa la nuez (Ø ~35 mm) de todas las
+    demás clases con mucho margen (hueco de 456 mm²); no depende de la luz
+    (la segmentación ExG no suma la sombra) ni de la distancia (se mide en mm).
+  si:
+    clase: nuez
+    validar: {area_mm2: [850, 1609], solidez: [0.93, 1.00], excentricidad: [0.00, 0.62], rojo_rel: [0.42, 0.85], entrante1_mm: [0.00, 2.48], entrante2_mm: [0.00, 1.61]}
+  sino:
+    id: N2
+    pregunta: ¿Es redondeado?
+    caracteristica: excentricidad
+    operador: "<"
+    umbral: 0.69        # real: avellana [0,21, 0,63] vs. alargados [0,76, 0,94], punto medio (sintético 0,656)
+    justificacion: >-
+      La avellana es casi redonda. La excentricidad de la elipse de momentos
+      usa todos los píxeles del objeto y es más estable que la relación de
+      aspecto del rectángulo mínimo (sensible al ruido del borde).
+    si:
+      clase: avellana
+      validar: {area_mm2: [103, 205], solidez: [0.91, 1.00], excentricidad: [0.00, 0.71], rojo_rel: [0.72, 0.95], entrante1_mm: [0.00, 1.65], entrante2_mm: [0.00, 1.50]}
+    sino:
+      id: N3
+      pregunta: ¿Es claramente rojizo respecto al tapete?
+      caracteristica: rojo_rel
+      operador: ">"
+      umbral: 0.79      # real: almendra [0,805, 0,886] vs. beige [0,554, 0,741]; mín. almendra − 0,015 (sintético 0,625)
+      justificacion: >-
+        Piel marrón rojiza (almendra) frente a beige (anacardo, cacahuete),
+        medida como cromaticidad del color RELATIVO al tapete (von Kries): no
+        depende de la intensidad, del color ni del ángulo de la luz. En las
+        fotos reales hay un hueco de 0,064 entre clases; por encima de 0,79
+        (casi toda almendra medida) es almendra SIN duda.
+      si:
+        clase: almendra
+        validar: {area_mm2: [171, 320], solidez: [0.91, 1.00], excentricidad: [0.69, 0.96], rojo_rel: [0.77, 0.93], entrante1_mm: [0.00, 1.60], entrante2_mm: [0.00, 1.23]}
+      sino:
+        id: N3b
+        pregunta: ¿Es claramente beige?
+        caracteristica: rojo_rel
+        operador: "<"
+        umbral: 0.755   # real: máx. beige 0,741 + 0,014 (sintético 0,585)
+        justificacion: >-
+          Por debajo de 0,755 están todos los beige medidos y ninguna almendra:
+          es beige sin duda. Entre 0,755 y 0,79 (el hueco entre clases, donde
+          no se midió ningún fruto) está la ZONA DE DUDA, que decide N3c con
+          otra característica por si otra luz desplaza un poco el color.
+        si:
+          id: N4
+          pregunta: ¿Es claramente convexo?
+          caracteristica: solidez
+          operador: ">"
+          umbral: 0.895   # real: máx. anacardo 0,884 + 0,011; por encima solo cacahuetes (sintético: solidez < 0,908)
+          justificacion: >-
+            El anacardo es curvo y deja mucho hueco en su envolvente convexa; la
+            vaina del cacahuete suele ser casi convexa: por encima de 0,895 no hay
+            ningún anacardo curvo y es cacahuete (salvo el anacardo de canto, N4a). Por debajo la solidez NO
+            decide: los cacahuetes con mucha cintura o en gancho bajan a 0,83-0,88,
+            dentro del rango del anacardo [0,778, 0,884]; decide N4c.
+          si:
+            id: N4a
+            pregunta: ¿Es demasiado pequeño para ser un cacahuete?
+            caracteristica: area_mm2
+            operador: "<"
+            umbral: 235   # real: anacardo de canto 204-211 mm² vs. cacahuete convexo más pequeño 259 mm², punto medio
+            justificacion: >-
+              Un anacardo visto de canto apenas enseña su curva y sale convexo
+              (solidez 0,91 en la demo con flash, por encima de N4), pero es mucho
+              más pequeño que la vaina de cacahuete más pequeña medida (259 mm²).
+              Su hoja sigue exigiendo el entrante de media luna (>= 2,12 mm).
+            si:
+              clase: anacardo
+              validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
+            sino:
+              clase: cacahuete
+              validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
+          sino:
+            id: N4c
+            pregunta: ¿Tiene un solo entrante hondo (media luna)?
+            caracteristica: entrante2_mm
+            operador: "<"
+            umbral: 0.78  # real: anacardo <= 0,44 en fotos y <= 0,72 en la demo DroidCam vs. cacahuete cóncavo >= 0,84 (gancho; cintura 1,1-3,7), punto medio
+            justificacion: >-
+              El anacardo tiene UN entrante hondo (la media luna) y el segundo es
+              casi nulo; el cacahuete cóncavo lo es por la cintura, que entra por
+              AMBOS lados (o por un gancho), así que su segundo entrante es hondo.
+              Un cacahuete de una semilla no tiene cintura, pero es muy convexo y
+              ya lo decide N4.
+            si:
+              clase: anacardo
+              validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
+            sino:
+              clase: cacahuete
+              validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
+        sino:
+          id: N3c
+          pregunta: (zona de duda) ¿Es oscuro respecto al tapete?
+          caracteristica: L_rel
+          operador: "<"
+          umbral: 0.69  # real: almendra [0,16, 0,39] vs. beige [1,00, 3,88], punto medio (sintético 1,457)
+          justificacion: >-
+            En la zona de duda del color decide la luminancia RELATIVA al
+            tapete (almendra oscura, beige claro). L_rel separa con mucho margen
+            pero se desplaza con luz muy rasante, por eso solo se usa aquí,
+            para los pocos frutos de la banda dudosa.
+          si:
+            clase: almendra
+            validar: {area_mm2: [171, 320], solidez: [0.91, 1.00], excentricidad: [0.69, 0.96], rojo_rel: [0.77, 0.93], entrante1_mm: [0.00, 1.60], entrante2_mm: [0.00, 1.23]}
+          sino:
+            id: N4b
+            pregunta: ¿Es claramente convexo?
+            caracteristica: solidez
+            operador: ">"
+            umbral: 0.895   # igual que N4
+            justificacion: >-
+              Igual que N4 (anacardo frente a cacahuete), para los beige que
+              llegan por la zona de duda del color.
+            si:
+              id: N4ba
+              pregunta: ¿Es demasiado pequeño para ser un cacahuete?
+              caracteristica: area_mm2
+              operador: "<"
+              umbral: 235   # real: anacardo de canto 204-211 mm² vs. cacahuete convexo más pequeño 259 mm², punto medio
+              justificacion: >-
+                Igual que N4a.
+              si:
+                clase: anacardo
+                validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
+              sino:
+                clase: cacahuete
+                validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
+            sino:
+              id: N4bc
+              pregunta: ¿Tiene un solo entrante hondo (media luna)?
+              caracteristica: entrante2_mm
+              operador: "<"
+              umbral: 0.78  # igual que N4c
+              justificacion: >-
+                Igual que N4c.
+              si:
+                clase: anacardo
+                validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
+              sino:
+                clase: cacahuete
+                validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
+
+interpretacion:
+  # Composición esperada del lote (opcional). Si se define, se informa de
+  # las unidades que faltan o sobran por clase y de si el lote es correcto.
+  # Se puede cambiar el día del examen sin tocar código. Ej.:
+  #   lote_esperado: {nuez: 2, avellana: 3, almendra: 3, anacardo: 2, cacahuete: 2}
+  lote_esperado: {}
+
+evaluacion:
+  # Un objeto etiquetado casa con una detección si su punto de etiqueta cae
+  # dentro de la máscara detectada o a menos de esta distancia (mm) de ella.
+  tolerancia_mm: 5

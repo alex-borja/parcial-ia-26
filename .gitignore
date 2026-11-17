@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+salidas/
+data/capturas/
+data/sintetico/
+data/sintetico_final/
+data/estres*/
+data/desarrollo_estres/
+informe/
+*.docx
+data/parcial_imgs/
+data/test/*
+!data/test/.gitkeep

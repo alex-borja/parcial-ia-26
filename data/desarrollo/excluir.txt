@@ -1,0 +1,12 @@
+# Objetos de data/desarrollo/ que NO se usan para medir umbrales, porque la
+# segmentación de medida (cuello + color, sin árbol) no los dejó como UN fruto
+# entero. Revisado a ojo sobre los recortes (sesión del 2026-11-10).
+# Formato: <clase>/<archivo> <id> <motivo>   (id = numeración de medir_umbrales)
+cacahuete/cacahuete(1).jpeg 6  dos cacahuetes en contacto fusionados (718 mm²)
+cacahuete/cacahuete(1).jpeg 12 mitad de un cacahuete partido por la cintura (174+200 mm²)
+cacahuete/cacahuete(1).jpeg 13 mitad de un cacahuete partido por la cintura (174+200 mm²)
+cacahuete/cacahuete(2).jpeg 7  mitad de un cacahuete partido por la cintura (159+174 mm²)
+cacahuete/cacahuete(2).jpeg 8  mitad de un cacahuete partido por la cintura (159+174 mm²)
+cacahuete/cacahuete.jpeg 12    mitad de un cacahuete partido por la cintura (172+198 mm²)
+cacahuete/cacahuete.jpeg 14    mitad de un cacahuete partido por la cintura (172+198 mm²)
+cacahuete/cacahuete.jpeg 7     trozo de un corte erróneo entre dos cacahuetes en contacto (244 mm²)
