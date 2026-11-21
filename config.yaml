@@ -255,6 +255,11 @@ clases:
 # casi perfectamente redonda, 0,06, salía «desconocido»; ser MÁS redonda de lo
 # medido no puede ser señal de otro objeto).
 # N4a: anacardo de canto (convexo y pequeño), visto en la demo con flash.
+# N3 por L_rel (antes rojo_rel > 0,79 con zona de duda N3b/N3c): en la sesión
+# de la demo del 17/11 a las 23:49 la cámara cambió el color y rojo_rel de
+# almendras y avellanas bajó ~0,1 (0,67-0,75), dentro del beige; L_rel siguió
+# separando con mucho margen. rojo_rel de almendra y avellana se valida en
+# [0,62, 0,95] (mín. de esa sesión 0,67 − 0,05) y se añade L_rel <= 0,69.
 # TODO: medir — una sola sesión de luz; repetir con otra luz (p. ej. la del
 # aula) antes del examen y comprobar que los rangos no se mueven.
 # -----------------------------------------------------------------------------
@@ -283,131 +288,72 @@ arbol:
       aspecto del rectángulo mínimo (sensible al ruido del borde).
     si:
       clase: avellana
-      validar: {area_mm2: [103, 205], solidez: [0.91, 1.00], excentricidad: [0.00, 0.71], rojo_rel: [0.72, 0.95], entrante1_mm: [0.00, 1.65], entrante2_mm: [0.00, 1.50]}
+      validar: {area_mm2: [103, 205], solidez: [0.91, 1.00], excentricidad: [0.00, 0.71], rojo_rel: [0.62, 0.95], L_rel: [0.00, 0.69], entrante1_mm: [0.00, 1.65], entrante2_mm: [0.00, 1.50]}
     sino:
       id: N3
-      pregunta: ¿Es claramente rojizo respecto al tapete?
-      caracteristica: rojo_rel
-      operador: ">"
-      umbral: 0.79      # real: almendra [0,805, 0,886] vs. beige [0,554, 0,741]; mín. almendra − 0,015 (sintético 0,625)
+      pregunta: ¿Es oscuro respecto al tapete?
+      caracteristica: L_rel
+      operador: "<"
+      umbral: 0.69      # real: almendra [0,16, 0,39] vs. beige [1,00, 3,88], punto medio
       justificacion: >-
-        Piel marrón rojiza (almendra) frente a beige (anacardo, cacahuete),
-        medida como cromaticidad del color RELATIVO al tapete (von Kries): no
-        depende de la intensidad, del color ni del ángulo de la luz. En las
-        fotos reales hay un hueco de 0,064 entre clases; por encima de 0,79
-        (casi toda almendra medida) es almendra SIN duda.
+        Piel marrón oscura (almendra) frente a beige claro (anacardo,
+        cacahuete), medida como luminancia RELATIVA al tapete que rodea al
+        fruto: no depende de la intensidad de la luz. Separa con un hueco de
+        0,61 en desarrollo y de 1,1 en la sesión de la demo del 17/11
+        (almendras 0,43-0,52 vs. beige >= 1,6), donde la cámara cambió el
+        color y rojo_rel de las almendras bajó a 0,72-0,75, dentro del beige.
+        L_rel depende del ángulo de la luz (rasante), pero con el flash del
+        móvil, siempre encendido y frontal, ese caso no se da.
       si:
         clase: almendra
-        validar: {area_mm2: [171, 320], solidez: [0.91, 1.00], excentricidad: [0.69, 0.96], rojo_rel: [0.77, 0.93], entrante1_mm: [0.00, 1.60], entrante2_mm: [0.00, 1.23]}
+        validar: {area_mm2: [171, 320], solidez: [0.91, 1.00], excentricidad: [0.69, 0.96], rojo_rel: [0.62, 0.95], L_rel: [0.00, 0.69], entrante1_mm: [0.00, 1.60], entrante2_mm: [0.00, 1.23]}
       sino:
-        id: N3b
-        pregunta: ¿Es claramente beige?
-        caracteristica: rojo_rel
-        operador: "<"
-        umbral: 0.755   # real: máx. beige 0,741 + 0,014 (sintético 0,585)
+        id: N4
+        pregunta: ¿Es claramente convexo?
+        caracteristica: solidez
+        operador: ">"
+        umbral: 0.895   # real: máx. anacardo 0,884 + 0,011; por encima solo cacahuetes (sintético: solidez < 0,908)
         justificacion: >-
-          Por debajo de 0,755 están todos los beige medidos y ninguna almendra:
-          es beige sin duda. Entre 0,755 y 0,79 (el hueco entre clases, donde
-          no se midió ningún fruto) está la ZONA DE DUDA, que decide N3c con
-          otra característica por si otra luz desplaza un poco el color.
+          El anacardo es curvo y deja mucho hueco en su envolvente convexa; la
+          vaina del cacahuete suele ser casi convexa: por encima de 0,895 no hay
+          ningún anacardo curvo y es cacahuete (salvo el anacardo de canto, N4a). Por debajo la solidez NO
+          decide: los cacahuetes con mucha cintura o en gancho bajan a 0,83-0,88,
+          dentro del rango del anacardo [0,778, 0,884]; decide N4c.
         si:
-          id: N4
-          pregunta: ¿Es claramente convexo?
-          caracteristica: solidez
-          operador: ">"
-          umbral: 0.895   # real: máx. anacardo 0,884 + 0,011; por encima solo cacahuetes (sintético: solidez < 0,908)
-          justificacion: >-
-            El anacardo es curvo y deja mucho hueco en su envolvente convexa; la
-            vaina del cacahuete suele ser casi convexa: por encima de 0,895 no hay
-            ningún anacardo curvo y es cacahuete (salvo el anacardo de canto, N4a). Por debajo la solidez NO
-            decide: los cacahuetes con mucha cintura o en gancho bajan a 0,83-0,88,
-            dentro del rango del anacardo [0,778, 0,884]; decide N4c.
-          si:
-            id: N4a
-            pregunta: ¿Es demasiado pequeño para ser un cacahuete?
-            caracteristica: area_mm2
-            operador: "<"
-            umbral: 235   # real: anacardo de canto 204-211 mm² vs. cacahuete convexo más pequeño 259 mm², punto medio
-            justificacion: >-
-              Un anacardo visto de canto apenas enseña su curva y sale convexo
-              (solidez 0,91 en la demo con flash, por encima de N4), pero es mucho
-              más pequeño que la vaina de cacahuete más pequeña medida (259 mm²).
-              Su hoja sigue exigiendo el entrante de media luna (>= 2,12 mm).
-            si:
-              clase: anacardo
-              validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
-            sino:
-              clase: cacahuete
-              validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
-          sino:
-            id: N4c
-            pregunta: ¿Tiene un solo entrante hondo (media luna)?
-            caracteristica: entrante2_mm
-            operador: "<"
-            umbral: 0.78  # real: anacardo <= 0,44 en fotos y <= 0,72 en la demo DroidCam vs. cacahuete cóncavo >= 0,84 (gancho; cintura 1,1-3,7), punto medio
-            justificacion: >-
-              El anacardo tiene UN entrante hondo (la media luna) y el segundo es
-              casi nulo; el cacahuete cóncavo lo es por la cintura, que entra por
-              AMBOS lados (o por un gancho), así que su segundo entrante es hondo.
-              Un cacahuete de una semilla no tiene cintura, pero es muy convexo y
-              ya lo decide N4.
-            si:
-              clase: anacardo
-              validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
-            sino:
-              clase: cacahuete
-              validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
-        sino:
-          id: N3c
-          pregunta: (zona de duda) ¿Es oscuro respecto al tapete?
-          caracteristica: L_rel
+          id: N4a
+          pregunta: ¿Es demasiado pequeño para ser un cacahuete?
+          caracteristica: area_mm2
           operador: "<"
-          umbral: 0.69  # real: almendra [0,16, 0,39] vs. beige [1,00, 3,88], punto medio (sintético 1,457)
+          umbral: 235   # real: anacardo de canto 204-211 mm² vs. cacahuete convexo más pequeño 259 mm², punto medio
           justificacion: >-
-            En la zona de duda del color decide la luminancia RELATIVA al
-            tapete (almendra oscura, beige claro). L_rel separa con mucho margen
-            pero se desplaza con luz muy rasante, por eso solo se usa aquí,
-            para los pocos frutos de la banda dudosa.
+            Un anacardo visto de canto apenas enseña su curva y sale convexo
+            (solidez 0,91 en la demo con flash, por encima de N4), pero es mucho
+            más pequeño que la vaina de cacahuete más pequeña medida (259 mm²).
+            Su hoja sigue exigiendo el entrante de media luna (>= 2,12 mm).
           si:
-            clase: almendra
-            validar: {area_mm2: [171, 320], solidez: [0.91, 1.00], excentricidad: [0.69, 0.96], rojo_rel: [0.77, 0.93], entrante1_mm: [0.00, 1.60], entrante2_mm: [0.00, 1.23]}
+            clase: anacardo
+            validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
           sino:
-            id: N4b
-            pregunta: ¿Es claramente convexo?
-            caracteristica: solidez
-            operador: ">"
-            umbral: 0.895   # igual que N4
-            justificacion: >-
-              Igual que N4 (anacardo frente a cacahuete), para los beige que
-              llegan por la zona de duda del color.
-            si:
-              id: N4ba
-              pregunta: ¿Es demasiado pequeño para ser un cacahuete?
-              caracteristica: area_mm2
-              operador: "<"
-              umbral: 235   # real: anacardo de canto 204-211 mm² vs. cacahuete convexo más pequeño 259 mm², punto medio
-              justificacion: >-
-                Igual que N4a.
-              si:
-                clase: anacardo
-                validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
-              sino:
-                clase: cacahuete
-                validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
-            sino:
-              id: N4bc
-              pregunta: ¿Tiene un solo entrante hondo (media luna)?
-              caracteristica: entrante2_mm
-              operador: "<"
-              umbral: 0.78  # igual que N4c
-              justificacion: >-
-                Igual que N4c.
-              si:
-                clase: anacardo
-                validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
-              sino:
-                clase: cacahuete
-                validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
+            clase: cacahuete
+            validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
+        sino:
+          id: N4c
+          pregunta: ¿Tiene un solo entrante hondo (media luna)?
+          caracteristica: entrante2_mm
+          operador: "<"
+          umbral: 0.78  # real: anacardo <= 0,44 en fotos y <= 0,72 en la demo DroidCam vs. cacahuete cóncavo >= 0,84 (gancho; cintura 1,1-3,7), punto medio
+          justificacion: >-
+            El anacardo tiene UN entrante hondo (la media luna) y el segundo es
+            casi nulo; el cacahuete cóncavo lo es por la cintura, que entra por
+            AMBOS lados (o por un gancho), así que su segundo entrante es hondo.
+            Un cacahuete de una semilla no tiene cintura, pero es muy convexo y
+            ya lo decide N4.
+          si:
+            clase: anacardo
+            validar: {area_mm2: [131, 360], solidez: [0.73, 0.93], excentricidad: [0.68, 0.96], rojo_rel: [0.42, 0.79], entrante1_mm: [2.12, 7.24], entrante2_mm: [0.00, 1.24]}
+          sino:
+            clase: cacahuete
+            validar: {area_mm2: [208, 625], solidez: [0.78, 1.00], excentricidad: [0.68, 1.00], rojo_rel: [0.42, 0.79], entrante1_mm: [0.00, 5.03], entrante2_mm: [0.00, 4.48]}
 
 interpretacion:
   # Composición esperada del lote (opcional). Si se define, se informa de

@@ -28,6 +28,6 @@ Tamaños en mm/mm² usando la escala de la calibración. Color medido en la más
 | `L_desv` | 0-100 | desviación típica de L* dentro de la máscara | Textura: la cáscara de la nuez es rugosa y con sombras internas. |  |
 | `H_media` | 0-179 | media circular del tono H (HSV OpenCV) | Tono (informativo). |  |
 | `S_media` | 0-255 | media de la saturación S (HSV) | Viveza del color. |  |
-| `rojo_rel` | — | q_R/(q_R+q_G+q_B), q = RGB lineal fruto / RGB lineal tapete iluminado de alrededor | Rojez respecto al tapete; INVARIANTE a intensidad, color y ángulo de la luz. Almendra/avellana (piel rojiza) > anacardo/cacahuete (beige). | **sí** |
+| `rojo_rel` | — | q_R/(q_R+q_G+q_B), q = RGB lineal fruto / RGB lineal tapete iluminado de alrededor | Rojez respecto al tapete; INVARIANTE a intensidad, color y ángulo de la luz. Almendra/avellana (piel rojiza) > anacardo/cacahuete (beige). |  |
 | `azul_rel` | — | q_B/(q_R+q_G+q_B) | Componente azul relativa (informativa). |  |
 | `L_rel` | — | luminancia lineal fruto / luminancia tapete de alrededor | Claridad respecto al tapete; invariante a la intensidad de la luz, pero NO a su color ni a su ángulo (con luz rasante el tapete recibe menos luz que el fruto). | **sí** |

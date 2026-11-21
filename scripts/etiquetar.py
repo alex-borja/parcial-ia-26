@@ -14,6 +14,9 @@ Uso:
     python scripts/etiquetar.py [data/test] [--rehacer] [--mostrar]
 """
 import argparse
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import cv2
@@ -24,6 +27,19 @@ from src.config import cargar_config
 from src.evaluacion import cargar_etiquetas, guardar_etiquetas, punto_interior
 from src.pipeline import analizar
 from src.visualizacion import anotar_objetos
+
+
+def abrir_visor(ruta):
+    """Abre la imagen en el visor del sistema, sin bloquear.
+
+    No se usa cv2.imshow: mientras la terminal espera la respuesta (input),
+    la ventana de OpenCV no procesa eventos y el escritorio la da por
+    colgada («Forzar salida»)."""
+    if sys.platform.startswith("win"):
+        os.startfile(ruta)  # noqa: S606
+        return
+    orden = "open" if sys.platform == "darwin" else "xdg-open"
+    subprocess.Popen([orden, str(ruta)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def pedir(prompt, valido):
@@ -65,8 +81,7 @@ def main():
         cv2.imwrite(str(destino), img)
         print(f"\n{ruta.name}: {len(res.objetos)} detecciones -> {destino}")
         if args.mostrar:
-            cv2.imshow("etiquetar", cv2.resize(img, None, fx=0.6, fy=0.6))
-            cv2.waitKey(500)
+            abrir_visor(destino)
 
         n = len(res.objetos)
         cadena = pedir(f"Clases de 1..{n} en orden ({ayuda}): ",
@@ -96,7 +111,6 @@ def main():
         etiquetas[ruta.name] = {"objetos": objetos, "no_detectados": no_det}
         guardar_etiquetas(etiquetas, ruta_et)        # se guarda tras cada foto
         print(f"  guardado ({len(objetos)} frutos + {sum(no_det.values())} no detectados)")
-    cv2.destroyAllWindows()
     print(f"Etiquetas en {ruta_et}")
 
 
